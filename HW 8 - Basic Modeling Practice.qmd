@@ -1,0 +1,113 @@
+---
+title: "ST558 - HW 8: Basic Modeling Practice"
+format: html
+editor: visual
+---
+
+```{r}
+#| warning: FALSE
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(janitor)
+```
+
+## Basic Modeling Practice
+
+### Reading Data
+
+Today we will do some structured practice with fitting linear models in R. The data set we will be using is about bike sharing rentals in Seoul, South Korea. Let's begin by reading in this data.
+```{r}
+bike_data <- read_csv("SeoulBikeData.csv", locale = locale(encoding="latin1")) # Locale solves problems with special characters in other languages.
+```
+
+### EDA
+
+#### Data Processing
+
+Before we go fitting any models, we will conduct some basic data cleaning to prepare our data for usage. First, we will check for missing values and verify data types to make sure the columns were read in correctly.
+```{r}
+# Check structure of data
+str(bike_data)
+
+# Check for missing values
+colSums(is.na(bike_data)) 
+```
+
+We can that none of the columns have missing values! However, we should note that the `Date` column has been read in as a character type, so we will need to process this column further. The categorical variables `Seasons`, `Holiday`, and `Functioning Day` have also been read in as character type, so we will convert them to factor type for later analysis. The `Date` column is currently stored as a character string with the format day/month/year. We will convert it into a usable date object using the `lubridate` library.
+```{r Date Conversion}
+bike_data <- bike_data |>
+  mutate(Date = dmy(Date))
+```
+
+Next, we will make sure that the categorical variables are read as factors.
+```{r Characters to Factors}
+bike_data <- bike_data |>
+  mutate(Seasons = as.factor(Seasons),
+         Holiday = as.factor(Holiday),
+         `Functioning Day` = as.factor(`Functioning Day`))
+
+head(bike_data)
+```
+
+Finally, we will rename all the variables to have more "user-friendly" names. For example, a column name like "Functioning Day" is not currently user-friendly because of the space between the words.
+```{r}
+bike_data <- bike_data |>
+  clean_names() # Replaces all spaces with '_' and makes all letters lowercase.
+
+names(bike_data)
+```
+
+#### Exploratory Data Analysis
+
+Now that the bike data has been cleaned up, we can begin some basic exploratory data analysis (EDA). Let's start by creating some summary statistics as they relate to the bike rental count. We will view these statistics across some categorical variables as well.
+```{r}
+# Summary of rented_bike_count variable.
+summary(bike_data$rented_bike_count)
+
+# Find unique values for each categorical variable
+unique(bike_data$seasons)
+unique(bike_data$holiday)
+unique(bike_data$functioning_day)
+```
+
+Since the `functioning_day` variable only has Yes or No values, this means that the bike sharing system was either operable or inoperable that hour. If the system was inoperable, then we get no useful information about bike rentals for that hour. In this case, we will remove observations that show the system was not operating.
+```{r}
+table(bike_data$functioning_day) # 295 "No " observations
+
+bike_data <- bike_data |>
+  filter(functioning_day == "Yes")
+```
+
+The data is currently given as hourly observations. We will summarize across the hours so that each day has one observation associated with it. We will also group the data by `date`, `seasons`, and `holiday`. We will find the sum of the `rented_bike_count`, `rainfall`, and `snowfall` variables. Finally, we will included the mean of all the weather related variables.
+```{r}
+daily_bike_data <- bike_data %>%
+  group_by(date, seasons, holiday) %>%
+  summarise(
+    total_bike_count = sum(rented_bike_count),
+    avg_temp_c = mean(temperature_c, na.rm = TRUE),
+    avg_humidity_pct = mean(humidity_percent, na.rm = TRUE),
+    avg_windspeed_m_s = mean(wind_speed_m_s, na.rm = TRUE),
+    avg_visibility_10m = mean(visibility_10m, na.rm = TRUE),
+    avg_dew_point_temp_c = mean(dew_point_temperature_c, na.rm = TRUE),
+    avg_solar_radiation_mj_m2 = mean(solar_radiation_mj_m2, na.rm = TRUE),
+    total_rainfall_mm = sum(rainfall_mm, na.rm = TRUE),
+    total_snowfall_cm = sum(snowfall_cm, na.rm = TRUE)
+  )
+
+head(daily_bike_data)
+```
+
+Now, we have a `daily_bike_data` tibble, which will be our new data that we will analyze! Let's recreate our basic summary statistics and then create some plots to explore variable relationships. We can also view a correlation matrix between our numeric variables to see if the data shows any significant correlations.
+```{r}
+# Summary of total_bike_count variable on a given day of the year.
+summary(daily_bike_data$total_bike_count)
+```
+```{r Corr Matrix}
+daily_bike_data |> 
+  select(where(is.numeric)) |> 
+  cor()
+```
+
+
+
