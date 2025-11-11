@@ -4,6 +4,10 @@ format: html
 editor: visual
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 ```{r}
 #| warning: FALSE
 library(tidyverse)
@@ -120,6 +124,7 @@ num_vars <- daily_bike_data[ , 4:12]
 
 corrplot(cor(num_vars))
 ```
+
 
 By looking at the correlation plot above, we can see that the total bike rental count has a strong, positive correlation with the average temperature and solar radiation. This makes sense because we can easily imagine more bikes being rented on a warm, sunny day rather than a cold, cloudy day.
 
@@ -286,5 +291,6 @@ final_model_coeffs <- best_fit |>
 
 final_model_coeffs
 ```
+
 
 
