@@ -10,6 +10,8 @@ library(tidyverse)
 library(readr)
 library(lubridate)
 library(janitor)
+library(corrplot)
+library(tidymodels)
 ```
 
 ## Basic Modeling Practice
@@ -103,11 +105,31 @@ Now, we have a `daily_bike_data` tibble, which will be our new data that we will
 # Summary of total_bike_count variable on a given day of the year.
 summary(daily_bike_data$total_bike_count)
 ```
-```{r Corr Matrix}
-daily_bike_data |> 
-  select(where(is.numeric)) |> 
-  cor()
+```{r Corr Plot}
+num_vars <- daily_bike_data[ , 4:12]
+
+corrplot(cor(num_vars))
+```
+By looking at the correlation plot above, we can see that the total bike rental count has a strong, positive correlation with the average temperature and solar radiation. This makes sense because we can easily imagine more bikes being rented on a warm, sunny day rather than a cold, cloudy day.
+
+#### Split the Data
+
+Now, we will move on to splitting our `daily_bike_data` into training and testing sets (75/25 split).
+```{r Splitting}
+set.seed(75)
+
+bike_split <- initial_split(daily_bike_data, prop = 0.75, strata = seasons)
+bike_train <- training(bike_split)
+bike_test <- training(bike_split)
 ```
 
+We will also create a 10 fold cross-validation (CV) split on the training set.
+```{r 10 Fold CV}
+bike_folds <- vfold_cv(bike_train, v = 10)
+```
+
+#### Fitting MLR Models
+
+Our bike data is now ready for fitting linear regression models!
 
 
